@@ -1,94 +1,406 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Калькулятор</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Научный калькулятор</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: linear-gradient(135deg, #89f7fe, #66a6ff);
-      height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 0;
+    :root{
+      --bg: #0f1724;
+      --panel: #111827;
+      --accent: #ff9f1c;
+      --btn-light: #e6edf3;
+      --btn-dark: #2b3440;
+      --glass: rgba(255,255,255,0.04);
     }
+    html,body{height:100%;margin:0;font-family:Inter, "Helvetica Neue", Arial, sans-serif;background:
+      radial-gradient(1200px 600px at 10% 10%, rgba(255,159,64,0.06), transparent),
+      linear-gradient(180deg,#071028 0%, #071426 100%);color:#e6eef6}
+    .wrap{min-height:100%;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box}
     .calc {
-      background: white;
-      padding: 30px;
-      border-radius: 15px;
-      box-shadow: 0 0 15px rgba(0,0,0,0.2);
-      text-align: center;
+      width: 360px;
+      max-width:95%;
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.06));
+      border-radius: 16px;
+      padding: 18px;
+      box-shadow: 0 10px 30px rgba(2,6,23,0.6), inset 0 1px 0 rgba(255,255,255,0.02);
+      border: 1px solid rgba(255,255,255,0.04);
     }
-    input {
-      width: 80px;
-      padding: 8px;
-      margin: 5px;
-      border: 1px solid #ccc;
-      border-radius: 5px;
-      text-align: center;
-      font-size: 16px;
+    .screen {
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.05));
+      border-radius: 12px;
+      padding: 14px;
+      text-align: right;
+      min-height: 78px;
+      color: #e6eef6;
+      box-sizing:border-box;
+      margin-bottom:12px;
+      position:relative;
+      overflow:hidden;
     }
-    select, button {
-      padding: 8px;
-      font-size: 16px;
-      border-radius: 5px;
+    .small {
+      color: #9fb0c6;
+      font-size: 13px;
+      opacity: 0.9;
+      word-break: break-all;
     }
-    button {
-      background: #007bff;
-      color: white;
+    .big {
+      font-size: 28px;
+      font-weight: 600;
+      margin-top:6px;
+      word-break: break-all;
+    }
+
+    .keys {
+      display:grid;
+      grid-template-columns: repeat(4,1fr);
+      gap:10px;
+    }
+    button.key {
+      background: var(--glass);
       border: none;
-      padding: 10px 20px;
-      margin-top: 10px;
+      padding: 14px;
+      border-radius: 10px;
+      color: #e9f3ff;
+      font-size: 16px;
       cursor: pointer;
+      box-shadow: 0 4px 8px rgba(2,6,23,0.5);
+      transition: transform .06s ease, box-shadow .12s ease, background .12s ease;
     }
-    button:hover {
-      background: #0056b3;
+    button.key:active { transform: translateY(2px) scale(.997); box-shadow: 0 2px 4px rgba(2,6,23,0.6); }
+    .key.op { background: linear-gradient(180deg,#1f2a36,#17202a); color:#fff; }
+    .key.func { background: linear-gradient(180deg,#11202b,#0d1620); color:#b9d6ea; font-weight:600 }
+    .key.equal { background: linear-gradient(180deg,var(--accent), #ff7b00); color:#071426; font-weight:700; }
+    .key.wide { grid-column: span 2; }
+    .key.grey { background: linear-gradient(180deg,#2f3943,#23282e); color:#cfe7ff }
+    .key.accent { background: linear-gradient(180deg,#7a4fff,#5b2bff); color:white; font-weight:700; }
+
+    /* responsive smaller screens */
+    @media (max-width:420px){
+      .calc{width:100%}
+      .big{font-size:22px}
+      button.key{padding:12px;font-size:15px}
     }
-    #result {
-      margin-top: 15px;
-      font-size: 18px;
-      font-weight: bold;
-      color: #333;
-    }
-    h2 { color: #333; }
   </style>
 </head>
 <body>
-  <div class="calc">
-    <h2>🧮 Простой калькулятор</h2>
-    <input type="number" id="num1" placeholder="Число 1">
-    <select id="op">
-      <option value="+">+</option>
-      <option value="-">−</option>
-      <option value="*">×</option>
-      <option value="/">÷</option>
-    </select>
-    <input type="number" id="num2" placeholder="Число 2">
-    <br>
-    <button onclick="calculate()">Посчитать</button>
-    <div id="result"></div>
+  <div class="wrap">
+    <div class="calc" role="application" aria-label="Scientific calculator">
+      <div class="screen" id="screen">
+        <div class="small" id="exprDisplay">&nbsp;</div>
+        <div class="big" id="mainDisplay">0</div>
+      </div>
+
+      <div class="keys" id="keys">
+        <!-- row 1 -->
+        <button class="key func" data-action="clear">C</button>
+        <button class="key func" data-action="back">⌫</button>
+        <button class="key func" data-action="paren">( )</button>
+        <button class="key op" data-value="/">÷</button>
+
+        <!-- row 2 -->
+        <button class="key grey" data-action="func" data-func="sin">sin</button>
+        <button class="key grey" data-action="func" data-func="cos">cos</button>
+        <button class="key grey" data-action="func" data-func="tan">tan</button>
+        <button class="key op" data-value="*">×</button>
+
+        <!-- row 3 -->
+        <button class="key" data-value="7">7</button>
+        <button class="key" data-value="8">8</button>
+        <button class="key" data-value="9">9</button>
+        <button class="key op" data-value="-">−</button>
+
+        <!-- row 4 -->
+        <button class="key" data-value="4">4</button>
+        <button class="key" data-value="5">5</button>
+        <button class="key" data-value="6">6</button>
+        <button class="key op" data-value="+">+</button>
+
+        <!-- row 5 -->
+        <button class="key" data-value="1">1</button>
+        <button class="key" data-value="2">2</button>
+        <button class="key" data-value="3">3</button>
+        <button class="key equal" data-action="equals">=</button>
+
+        <!-- row 6 -->
+        <button class="key func" data-action="plusminus">±</button>
+        <button class="key" data-value="0">0</button>
+        <button class="key" data-value=".">.</button>
+        <button class="key func" data-action="percent">%</button>
+
+        <!-- scientific row below -->
+        <button class="key func" data-action="func" data-func="sqrt">√</button>
+        <button class="key func" data-action="func" data-func="ln">ln</button>
+        <button class="key func" data-action="func" data-func="log">log</button>
+        <button class="key func" data-action="pi">π</button>
+
+        <button class="key func wide" data-action="power">xʸ</button>
+        <button class="key func wide" data-action="clearEntry">CE</button>
+      </div>
+    </div>
   </div>
 
   <script>
-    function calculate() {
-      const num1 = parseFloat(document.getElementById('num1').value);
-      const num2 = parseFloat(document.getElementById('num2').value);
-      const op = document.getElementById('op').value;
-      let res;
-      if (isNaN(num1) || isNaN(num2)) {
-        res = 'Введите оба числа!';
-      } else {
-        switch (op) {
-          case '+': res = num1 + num2; break;
-          case '-': res = num1 - num2; break;
-          case '*': res = num1 * num2; break;
-          case '/': res = num2 !== 0 ? (num1 / num2).toFixed(2) : 'Деление на 0!'; break;
+    (function(){
+      const exprDisplay = document.getElementById('exprDisplay');
+      const mainDisplay = document.getElementById('mainDisplay');
+      const keys = document.getElementById('keys');
+
+      // Two representations:
+      // displayStr - visible to user (sin(, ×, ÷, π, etc.)
+      // evalStr - converted to valid JS expression using Math.* and standard operators
+      let displayStr = '';
+      let evalStr = '';
+      let lastWasEqual = false;
+
+      const safeAppend = (dPart, ePart) => {
+        if (lastWasEqual && /[0-9.π\(]/.test(dPart)) {
+          // If after '=', user types a number, start fresh
+          displayStr = '';
+          evalStr = '';
+        }
+        displayStr += dPart;
+        evalStr += ePart;
+        updateScreen();
+        lastWasEqual = false;
+      };
+
+      function updateScreen(){
+        exprDisplay.textContent = displayStr || '\u00A0';
+        mainDisplay.textContent = getLastNumberPreview() || '0';
+      }
+
+      // Return last number/chunk to show large on main display
+      function getLastNumberPreview(){
+        // try to extract the last token after operators
+        const tokens = displayStr.split(/[\+\-\×\÷\*\/\^\(\)]/).filter(Boolean);
+        return tokens.length ? tokens[tokens.length - 1] : displayStr;
+      }
+
+      // Map function names to JS Math.*
+      function mapFuncName(fn){
+        switch(fn){
+          case 'sin': return 'Math.sin(';
+          case 'cos': return 'Math.cos(';
+          case 'tan': return 'Math.tan(';
+          case 'sqrt': return 'Math.sqrt(';
+          case 'ln': return 'Math.log(';
+          case 'log': return 'Math.log10 ? Math.log10(' : 'Math.log('; // fallback
+        }
+        return fn + '(';
+      }
+
+      // Handlers for special actions
+      function doClear(){
+        displayStr = '';
+        evalStr = '';
+        lastWasEqual = false;
+        updateScreen();
+      }
+      function doClearEntry(){
+        // remove last entry (after last operator)
+        const dIdx = Math.max(
+          displayStr.lastIndexOf('+'),
+          displayStr.lastIndexOf('-'),
+          displayStr.lastIndexOf('×'),
+          displayStr.lastIndexOf('÷'),
+          displayStr.lastIndexOf('*'),
+          displayStr.lastIndexOf('/'),
+          displayStr.lastIndexOf('^')
+        );
+        displayStr = dIdx === -1 ? '' : displayStr.slice(0, dIdx + 1);
+        // rebuild evalStr from displayStr
+        rebuildEvalFromDisplay();
+        updateScreen();
+      }
+      function doBack(){
+        // remove last symbol from displayStr and evalStr intelligently
+        if (!displayStr) return;
+        // if last chars correspond to a mapped function like "sin(" remove whole "sin("
+        const functionNames = ['sin(','cos(','tan(','sqrt(','ln(','log('];
+        for (let fn of functionNames){
+          if (displayStr.endsWith(fn)){
+            displayStr = displayStr.slice(0, -fn.length);
+            rebuildEvalFromDisplay();
+            updateScreen();
+            return;
+          }
+        }
+        // otherwise remove last character
+        displayStr = displayStr.slice(0, -1);
+        rebuildEvalFromDisplay();
+        updateScreen();
+      }
+      function doParen(){
+        // Add '(' or ')' depending on balance
+        const open = (displayStr.match(/\(/g) || []).length;
+        const close = (displayStr.match(/\)/g) || []).length;
+        if (open === close || /[+\-×÷\*\/\^]$/.test(displayStr) || displayStr === '') {
+          safeAppend('(', '(');
+        } else {
+          safeAppend(')', ')');
         }
       }
-      document.getElementById('result').innerText = 'Результат: ' + res;
-    }
+      function doPlusMinus(){
+        // Toggle sign for the current last number token
+        // Find last token start index in displayStr
+        const match = displayStr.match(/(.+?)([-+×÷*/^]?)?([0-9.π]+)$/);
+        if (!match) return;
+        const prefix = match[1] || '';
+        const op = match[2] || '';
+        let number = match[3] || '';
+        // if starts with '-', remove it; else add '-'
+        if (number.startsWith('-')) {
+          number = number.slice(1);
+        } else {
+          number = '-' + number;
+        }
+        displayStr = prefix + op + number;
+        rebuildEvalFromDisplay();
+        updateScreen();
+      }
+
+      function doPercent(){
+        // Convert last number to percentage of 1 (divide by 100)
+        const match = displayStr.match(/(.+?)([+\-×÷\*\/\^]?)?([0-9.π]+)$/);
+        if (!match) return;
+        const prefix = match[1] || '';
+        const op = match[2] || '';
+        const number = match[3] || '';
+        // compute percent string
+        let newDisplay = number + '/100';
+        displayStr = prefix + op + '(' + number + '/100)';
+        rebuildEvalFromDisplay();
+        updateScreen();
+      }
+
+      function doPi(){
+        safeAppend('π', 'Math.PI');
+      }
+
+      function doPower(){
+        // append ^ symbol (we will map ^ to ** for evaluation)
+        safeAppend('^', '**');
+      }
+
+      // rebuild evalStr from displayStr (reverse mapping)
+      function rebuildEvalFromDisplay(){
+        // naive but effective mapping:
+        let s = displayStr;
+        // replace × ÷ with * /
+        s = s.replace(/×/g, '*').replace(/÷/g, '/');
+        // replace π with Math.PI
+        s = s.replace(/π/g, 'Math.PI');
+        // replace function names with Math.*(
+        s = s.replace(/\bsin\(/g, 'Math.sin(')
+             .replace(/\bcos\(/g, 'Math.cos(')
+             .replace(/\btan\(/g, 'Math.tan(')
+             .replace(/\bsqrt\(/g, 'Math.sqrt(')
+             .replace(/\bln\(/g, 'Math.log(')
+             .replace(/\blog\(/g, (Math.log10 ? 'Math.log10(' : 'Math.log('));
+        // caret handled as ** when mapping, but user sees ^
+        s = s.replace(/\^/g, '**');
+        evalStr = s;
+      }
+
+      // Evaluate expression safely-ish
+      function evaluateExpression(){
+        if (!evalStr) return;
+        try {
+          // Simple safety: allow only digits, Math, operators, parentheses, dot
+          // (since evalStr built by us, it's reasonably safe)
+          // Evaluate using Function to allow exponentiation
+          const fn = new Function('return (' + evalStr + ')');
+          const raw = fn();
+          const clean = (typeof raw === 'number' && isFinite(raw)) ? raw : NaN;
+          const result = (typeof clean === 'number') ? (+clean.toPrecision(12)) : NaN;
+          if (isNaN(result)) {
+            mainDisplay.textContent = 'Ошибка';
+          } else {
+            mainDisplay.textContent = formatResult(result);
+            // set displayStr and evalStr to the result for further calculations
+            displayStr = String(result);
+            evalStr = String(result);
+            lastWasEqual = true;
+            exprDisplay.textContent = displayStr;
+          }
+        } catch (e) {
+          mainDisplay.textContent = 'Ошибка';
+        }
+      }
+
+      function formatResult(n){
+        // show integer without dot, else show up to 8 decimal places trimmed
+        if (Math.abs(n) > 1e12 || Math.abs(n) < 1e-12 && n !== 0) {
+          return n.toExponential(6);
+        }
+        if (Number.isInteger(n)) return String(n);
+        let s = n.toFixed(8);
+        // trim trailing zeros
+        s = s.replace(/\.?0+$/,'');
+        return s;
+      }
+
+      // Click handling
+      keys.addEventListener('click', (e) => {
+        const btn = e.target.closest('button.key');
+        if (!btn) return;
+        const val = btn.getAttribute('data-value');
+        const action = btn.getAttribute('data-action');
+
+        if (val) {
+          // numeric or operator
+          // map displayed symbols to eval symbols
+          let displayPart = val;
+          let evalPart = val;
+          if (val === '*') { displayPart = '×'; evalPart = '*'; }
+          if (val === '/') { displayPart = '÷'; evalPart = '/'; }
+          if (val === '+') { displayPart = '+'; }
+          if (val === '-') { displayPart = '-'; }
+          safeAppend(displayPart, evalPart);
+          return;
+        }
+
+        if (action) {
+          switch(action) {
+            case 'clear': doClear(); break;
+            case 'clearEntry': doClearEntry(); break;
+            case 'back': doBack(); break;
+            case 'paren': doParen(); break;
+            case 'plusminus': doPlusMinus(); break;
+            case 'percent': doPercent(); break;
+            case 'pi': doPi(); break;
+            case 'power': doPower(); break;
+            case 'equals': evaluateExpression(); break;
+            case 'func': {
+              const fn = btn.getAttribute('data-func');
+              // append readable and eval versions
+              const displayPart = fn + '(';
+              const evalPart = mapFuncName(fn);
+              safeAppend(displayPart, evalPart);
+              break;
+            }
+            default: break;
+          }
+        }
+      });
+
+      // keyboard support (basic)
+      window.addEventListener('keydown', (e) => {
+        if (e.key >= '0' && e.key <= '9') return safeAppend(e.key, e.key);
+        if (e.key === '.') return safeAppend('.', '.');
+        if (e.key === '+' || e.key === '-' || e.key === '*' || e.key === '/') return safeAppend(e.key === '*' ? '×' : e.key, e.key === '*' ? '*' : e.key);
+        if (e.key === 'Enter' || e.key === '=') { e.preventDefault(); evaluateExpression(); }
+        if (e.key === 'Backspace') doBack();
+        if (e.key === 'Escape') doClear();
+        if (e.key === '(' || e.key === ')') safeAppend(e.key, e.key);
+        // simple function shortcuts
+        if (e.key === 'p') { doPi(); } // p -> pi
+      });
+
+      // init
+      doClear();
+    })();
   </script>
 </body>
 </html>
